@@ -9,15 +9,32 @@
 #define TO_ADDR      "recipient@org.com"
 #define CC_ADDR      "copyEmail@org.com"
 
-int num1 = 0;
-int num2 = 0;
-int sum = 0;
+int codigo[6];
+int i;
+char codigo_string[7];
+int codigo_int;
+int digito_aleatorio;
+int resposta;
 
 void generateCode(){
-  srand(time(NULL));
-  num1 = rand() % 1000000;
-  num2 = rand() % 1000000;
-  sum = num1 + num2;
+    srand(time(NULL));
+
+    // Gerando o código aleatório
+    for (i = 0; i < 6; i++)
+    {
+        digito_aleatorio = rand() % 10;
+        codigo[i] = digito_aleatorio;
+    }
+
+    // Convertendo o vetor para string
+    for (i = 0; i < 6; i++)
+    {
+        codigo_string[i] = codigo[i] + '0';
+    }
+    codigo_string[6] = '\0';
+
+    // Convertendo a string para inteiro
+    codigo_int = atoi(codigo_string);
 }
 
 void sendMail(){
@@ -123,15 +140,18 @@ void sendMail(){
 int main(void) {
 
     sendMail();
-    int validar = 0;
+    char resposta[7];
+    printf("\n%s\n", codigo_string);
 
     printf("\Informe o codigo: ");
-    scanf("%i", &validar);
+    fgets(resposta, sizeof(resposta), stdin);
 
-    if(validar == sum){
+    printf("\n%s\n", resposta);
+
+    if(strcmp(resposta, codigo_string) == 0){
         printf("\nValidacao concluida, autenticacao liberada \n");
     } else{
-        printf("\nCodigo diferente, autenticacao negada");
+        printf("Codigo diferente, autenticacao negada");
     }
 
     return 0;
