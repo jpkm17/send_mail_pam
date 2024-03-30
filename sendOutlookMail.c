@@ -1,59 +1,68 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include "include/curl/curl.h"
-//#include "<curl/curl.h>"
+#include "include/curl/curl.h"
+//#include <curl/curl.h>
+#include <time.h>
+#include <string.h>
 
-#define FROM_ADDR    "remetente@org.com"
-#define TO_ADDR      "destinatario@org.com"
-#define CC_ADDR      "copia@org.com"
+#define FROM_ADDR    "sender@outlook.com"
+#define TO_ADDR      "recipient@org.com"
+#define CC_ADDR      "copyEmail@org.com"
 
-//#define FROM_MAIL "Sender Person " FROM_ADDR
-//#define TO_MAIL   "A Receiver " TO_ADDR
-//#define CC_MAIL   "Copy" CC_ADDR
+int num1 = 0;
+int num2 = 0;
+int sum = 0;
 
-static const char *payload_text =
-  "Date: Thu, 28 Mar 2024 08:27:30 +1100\r\n"
-  "To: " TO_ADDR "\r\n"
-  "From: " FROM_ADDR "\r\n"
-  "Cc: " CC_ADDR "\r\n"
-  "Message-ID: <dcd7cb36-11db-487a-9f3a-e652a9458efd@"
-  "teste.outlook.org>\r\n"
-  "Subject: Teste envio mensagem\r\n"
-  "\r\n" /* empty line to divide headers from body, see RFC 5322 */
-  "Ola este email foi envido por JOHN PETER .\r\n"
-  "\r\n"
-  "Foi utilizado a linguagem C com a lib curl.\r\n";
+void generateCode(){
+  srand(time(NULL));
+  num1 = rand() % 1000000;
+  num2 = rand() % 1000000;
+  sum = num1 + num2;
+}
 
-struct upload_status {
-  size_t bytes_read;
-};
+void sendMail(){
+  generateCode();
+  char *payload_text;
 
-static size_t payload_source(char *ptr, size_t size, size_t nmemb, void *userp) {
-  struct upload_status *upload_ctx = (struct upload_status *)userp;
-  const char *data;
-  size_t room = size * nmemb;
+  sprintf(payload_text,
+          "Date: Thu, 29 Mar 2024 19:51:00 +1100\r\n"
+          "To: %s\r\n"
+          "From: %s\r\n"
+          "Cc: %s\r\n"
+          "Subject: Autenticacao 2 fatores\r\n"
+          "\r\n"
+          "Código de autenticação: %d\r\n"
+          "\r\n",
+          TO_ADDR, FROM_ADDR, CC_ADDR, sum);
 
-  if((size == 0) || (nmemb == 0) || ((size*nmemb) < 1)) {
+  struct upload_status {
+    size_t bytes_read;
+  };
+
+  size_t payload_source(char *ptr, size_t size, size_t nmemb, void *userp) {
+    struct upload_status *upload_ctx = (struct upload_status *)userp;
+    const char *data;
+    size_t room = size * nmemb;
+
+    if((size == 0) || (nmemb == 0) || ((size*nmemb) < 1)) {
+      return 0;
+    }
+
+    data = &payload_text[upload_ctx->bytes_read];
+
+    if(data) {
+      size_t len = strlen(data);
+      if(room < len)
+        len = room;
+      memcpy(ptr, data, len);
+      upload_ctx->bytes_read += len;
+
+      return len;
+   }
+
     return 0;
   }
 
-  data = &payload_text[upload_ctx->bytes_read];
-
-  if(data) {
-    size_t len = strlen(data);
-    if(room < len)
-      len = room;
-    memcpy(ptr, data, len);
-    upload_ctx->bytes_read += len;
-
-    return len;
-  }
-
-  return 0;
-}
-
-int main(void)
-{
   CURL *curl;
   CURLcode res = CURLE_OK;
   struct curl_slist *recipients = NULL;
@@ -62,28 +71,33 @@ int main(void)
   curl = curl_easy_init();
   if(curl) {
     /* Set username and password */
-    curl_easy_setopt(curl, CURLOPT_USERNAME, "user");
-    curl_easy_setopt(curl, CURLOPT_PASSWORD, "secret");
+    curl_easy_setopt(curl, CURLOPT_USERNAME, "yourEmail@outlook.com");
+    curl_easy_setopt(curl, CURLOPT_PASSWORD, "yourPassword");
 
 
     curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp-mail.outlook.com:587");
 
-    curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
-    
     curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
 
-    curl_easy_setopt(curl, CURLOPT_CAINFO, "./cacert.pem");
-
+    /* If you don't have a certificate, use this
+     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+     */
+    
+    /* Use this, if you have a certificate, 
+     curl_easy_setopt(curl, CURLOPT_CAINFO, "path/to/certified.pem"); ./cacert.pem
+    */
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, FROM_ADDR);
 
     recipients = curl_slist_append(recipients, TO_ADDR);
     recipients = curl_slist_append(recipients, CC_ADDR);
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 
+
     curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
     curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
     curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-    
+
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
     /* Send the message */
@@ -102,4 +116,23 @@ int main(void)
   }
 
   return (int)res;
+
+}
+
+
+int main(void) {
+
+    sendMail();
+    int validar = 0;
+
+    printf("\Informe o codigo: ");
+    scanf("%i", &validar);
+
+    if(validar == sum){
+        printf("\nValidacao concluida, autenticacao liberada \n");
+    } else{
+        printf("\nCodigo diferente, autenticacao negada");
+    }
+
+    return 0;
 }
