@@ -50,7 +50,7 @@ void sendMail(){
           "\r\n"
           "Código de autenticação: %d\r\n"
           "\r\n",
-          TO_ADDR, FROM_ADDR, CC_ADDR, sum);
+          TO_ADDR, FROM_ADDR, CC_ADDR, codigo_int);
 
   struct upload_status {
     size_t bytes_read;
