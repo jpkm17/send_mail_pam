@@ -5,33 +5,69 @@
 #include <time.h>
 #include <string.h>
 
-#define FROM_ADDR    "sender@outlook.com"
-#define TO_ADDR      "recipient@org.com"
-#define CC_ADDR      "copyEmail@org.com"
-
 int codigo[6];
-int i;
 char codigo_string[7];
 int codigo_int;
 int digito_aleatorio;
-int resposta;
+
+void recipient() {
+    char nomes[4][7] = {
+        "arthur",
+        "elvis",
+        "joao",
+        "rafael"
+    };
+
+    char resp[7];
+
+    printf("\nInforme o nome para enviar o email: ");
+    fgets(resp, sizeof(resp), stdin);
+
+    printf("\nNome digitado: %s", resp);
+
+    // Converter o nome digitado para minúsculas
+    for (int i = 0; resp[i] != '\0'; i++) {
+        resp[i] = tolower(resp[i]);
+    }
+
+    // Remover o caractere de nova linha, se presente
+    if (resp[strlen(resp) - 1] == '\n') {
+        resp[strlen(resp) - 1] = '\0';
+    }
+
+    int encontrado = 0;
+
+    // Verificar se o nome está na lista
+    for (int i = 0; i < 4; i++) {
+        if (strcmp(resp, nomes[i]) == 0) {
+            printf("\nAchou o nome %s na posição %i\n", resp, i);
+            encontrado = 1;
+            break;
+        }
+    }
+
+    if (!encontrado) {
+        printf("\nNome não encontrado\n");
+    }
+}
+
 
 void generateCode(){
     srand(time(NULL));
 
     // Gerando o código aleatório
-    for (i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
     {
         digito_aleatorio = rand() % 10;
         codigo[i] = digito_aleatorio;
     }
 
     // Convertendo o vetor para string
-    for (i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
     {
         codigo_string[i] = codigo[i] + '0';
     }
-    codigo_string[6] = '\0';
+    codigo_string[7] = '\0';
 
     // Convertendo a string para inteiro
     codigo_int = atoi(codigo_string);
@@ -39,18 +75,22 @@ void generateCode(){
 
 void sendMail(){
   generateCode();
-  char *payload_text;
+  char payload_text[250];
 
-  sprintf(payload_text,
+  #define FROM_ADDR    "sender@outlook.com"
+  #define TO_ADDR      "recipient@org.com"
+  #define CC_ADDR      "copyEmail@org.com"
+
+  snprintf(payload_text,sizeof(payload_text),
           "Date: Thu, 29 Mar 2024 19:51:00 +1100\r\n"
           "To: %s\r\n"
           "From: %s\r\n"
           "Cc: %s\r\n"
           "Subject: Autenticacao 2 fatores\r\n"
           "\r\n"
-          "Código de autenticação: %d\r\n"
+          "Código de autenticação: %s \r\n"
           "\r\n",
-          TO_ADDR, FROM_ADDR, CC_ADDR, codigo_int);
+          TO_ADDR, FROM_ADDR, CC_ADDR, codigo_string);
 
   struct upload_status {
     size_t bytes_read;
@@ -115,7 +155,7 @@ void sendMail(){
     curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
     curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
 
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
     /* Send the message */
     res = curl_easy_perform(curl);
@@ -141,7 +181,6 @@ int main(void) {
 
     sendMail();
     char resposta[7];
-    printf("\n%s\n", codigo_string);
 
     printf("\Informe o codigo: ");
     fgets(resposta, sizeof(resposta), stdin);
