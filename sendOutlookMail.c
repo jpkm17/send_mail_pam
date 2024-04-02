@@ -11,11 +11,11 @@ int codigo_int;
 int digito_aleatorio;
 
 void recipient() {
-    char nomes[4][7] = {
-        "arthur",
-        "elvis",
-        "joao",
-        "rafael"
+    char nomes[4][7][30] = {
+        {"arthur", "eita@gmail.com"},
+        {"elvis", "teste@gmail.com"},
+        {"joao", "damedame@gmail.com"},
+        {"rafael", "aaa@gmail.com"}
     };
 
     char resp[7];
@@ -30,25 +30,27 @@ void recipient() {
         resp[i] = tolower(resp[i]);
     }
 
-    // Remover o caractere de nova linha, se presente
     if (resp[strlen(resp) - 1] == '\n') {
         resp[strlen(resp) - 1] = '\0';
     }
 
     int encontrado = 0;
-
-    // Verificar se o nome está na lista
+    // Percorrer as linhas
     for (int i = 0; i < 4; i++) {
-        if (strcmp(resp, nomes[i]) == 0) {
-            printf("\nAchou o nome %s na posição %i\n", resp, i);
-            encontrado = 1;
-            break;
+        // Percorrer as colunas
+        for (int j = 0; j < 2; j++) { // Existem apenas duas colunas em cada linha
+            if(strcmp(resp, nomes[i]) ==0 ){
+                printf("\n%s", nomes[i][j]);
+                encontrado = 1;
+            }
         }
+        printf("\n"); // Nova linha após cada linha da matriz
     }
 
     if (!encontrado) {
         printf("\nNome não encontrado\n");
     }
+
 }
 
 
