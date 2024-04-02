@@ -133,7 +133,6 @@ void sendMail(){
     curl_easy_setopt(curl, CURLOPT_USERNAME, "yourEmail@outlook.com");
     curl_easy_setopt(curl, CURLOPT_PASSWORD, "yourPassword");
 
-
     curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp-mail.outlook.com:587");
 
     curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
@@ -173,9 +172,6 @@ void sendMail(){
     /* Always cleanup */
     curl_easy_cleanup(curl);
   }
-
-  return (int)res;
-
 }
 
 
@@ -184,7 +180,7 @@ int main(void) {
     sendMail();
     char resposta[7];
 
-    printf("\Informe o codigo: ");
+    printf("\nInforme o codigo: ");
     fgets(resposta, sizeof(resposta), stdin);
 
     printf("\n%s\n", resposta);
