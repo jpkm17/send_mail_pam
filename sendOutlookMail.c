@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "include/curl/curl.h"
-//#include <curl/curl.h>
+//#include "include/curl/curl.h"
+#include <curl/curl.h>
 #include <time.h>
 #include <string.h>
 
@@ -9,6 +9,7 @@ int codigo[6];
 char codigo_string[7];
 int codigo_int;
 int digito_aleatorio;
+char toAddr[100];
 
 void recipient() {
     char nomes[4][7][30] = {
@@ -37,18 +38,16 @@ void recipient() {
     int encontrado = 0;
     // Percorrer as linhas
     for (int i = 0; i < 4; i++) {
-        // Percorrer as colunas
-        for (int j = 0; j < 2; j++) { // Existem apenas duas colunas em cada linha
-            if(strcmp(resp, nomes[i]) ==0 ){
-                printf("\n%s", nomes[i][j]);
+            if(strcmp(resp, nomes[i]) == 0 ){
+                strcpy(toAddr, nomes[i][1]
                 encontrado = 1;
             }
-        }
         printf("\n"); // Nova linha após cada linha da matriz
     }
 
     if (!encontrado) {
-        printf("\nNome não encontrado\n");
+        printf("\nNome nao encontrado\n\r");
+        return PAM_AUTH_ERR;
     }
 
 }
@@ -80,7 +79,7 @@ void sendMail(){
   char payload_text[250];
 
   #define FROM_ADDR    "sender@outlook.com"
-  #define TO_ADDR      "recipient@org.com"
+  #define TO_ADDR      toAddr
   #define CC_ADDR      "copyEmail@org.com"
 
   snprintf(payload_text,sizeof(payload_text),
@@ -132,9 +131,7 @@ void sendMail(){
     /* Set username and password */
     curl_easy_setopt(curl, CURLOPT_USERNAME, "yourEmail@outlook.com");
     curl_easy_setopt(curl, CURLOPT_PASSWORD, "yourPassword");
-
     curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp-mail.outlook.com:587");
-
     curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
 
     /* If you don't have a certificate, use this
@@ -150,8 +147,7 @@ void sendMail(){
     recipients = curl_slist_append(recipients, TO_ADDR);
     recipients = curl_slist_append(recipients, CC_ADDR);
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
-
-
+      
     curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
     curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
     curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
@@ -160,7 +156,7 @@ void sendMail(){
 
     /* Send the message */
     res = curl_easy_perform(curl);
-
+      
     /* Check for errors */
     if(res != CURLE_OK)
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
@@ -186,10 +182,36 @@ int main(void) {
     printf("\n%s\n", resposta);
 
     if(strcmp(resposta, codigo_string) == 0){
-        printf("\nValidacao concluida, autenticacao liberada \n");
+        printf("\nValidacao concluida, autenticacao liberada\n\r");
     } else{
-        printf("Codigo diferente, autenticacao negada");
+        printf("\nCodigo diferente, autenticacao negada\n\r");
     }
 
     return 0;
 }
+/*
+int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    recipient();
+    sendMail();
+    char resposta[7];
+
+    printf("\nInforme o codigo: ");
+    fgets(resposta, sizeof(resposta), stdin);
+
+    printf("\n%s\n", resposta);
+
+    if(strcmp(resposta, codigo_string) == 0){
+        printf("\nValidacao concluida, autenticacao liberada\n\r");
+         return PAM_SUCCESS;
+    } else{
+        printf("\nCodigo diferente, autenticacao negada\n\r");
+        return PAM_AUTH_ERR;
+    }
+
+}
+
+int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    return PAM_SUCCESS;
+}
+
+*/
