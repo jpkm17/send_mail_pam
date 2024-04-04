@@ -4,8 +4,10 @@
 #include <curl/curl.h>
 #include <time.h>
 #include <string.h>
+#include <ctype.h>
+#include <security/pam_modules.h>
 
-int codigo[6];
+int codigo[7];
 char codigo_string[7];
 int codigo_int;
 int digito_aleatorio;
@@ -39,7 +41,7 @@ void recipient() {
     // Percorrer as linhas
     for (int i = 0; i < 4; i++) {
             if(strcmp(resp, nomes[i]) == 0 ){
-                strcpy(toAddr, nomes[i][1]
+                strcpy(toAddr, nomes[i][1]);
                 encontrado = 1;
             }
         printf("\n"); // Nova linha após cada linha da matriz
@@ -47,7 +49,6 @@ void recipient() {
 
     if (!encontrado) {
         printf("\nNome nao encontrado\n\r");
-        return PAM_AUTH_ERR;
     }
 
 }
