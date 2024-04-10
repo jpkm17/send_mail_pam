@@ -1,8 +1,9 @@
 compile: sendOutlookMail.c 
 	gcc -fPIC -fno-stack-protector -c -lcurl sendOutlookMail.c
+	gcc -shared -o sendOutlookMail.so sendOutlookMail.o -lcurl
 
 install: sendOutlookMail.o
-	ld -x --shared -o /lib64/security/sendOutlookMail.so sendOutlookMail.o
+	sudo cp sendOutlookMail.so /lib64/security
 
 uninstall:
 	rm -f /lib64/security/sendOutlookMail.so
