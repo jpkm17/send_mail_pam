@@ -171,35 +171,19 @@ void sendMail(){
   }
 }
 
-
-int main(void) {
-
-    sendMail();
-    char resposta[7];
-
-    printf("\nInforme o codigo: ");
-    fgets(resposta, sizeof(resposta), stdin);
-
-    printf("\n%s\n", resposta);
-
-    if(strcmp(resposta, codigo_string) == 0){
-        printf("\nValidacao concluida, autenticacao liberada\n\r");
-    } else{
-        printf("\nCodigo diferente, autenticacao negada\n\r");
-    }
-
-    return 0;
+int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+    return PAM_SUCCESS;
 }
-/*
+
 int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) {
     recipient();
+
+    printf("\nAguarde alguns instantes para a chegada do codigo no email!\n");
     sendMail();
     char resposta[7];
 
     printf("\nInforme o codigo: ");
     fgets(resposta, sizeof(resposta), stdin);
-
-    printf("\n%s\n", resposta);
 
     if(strcmp(resposta, codigo_string) == 0){
         printf("\nValidacao concluida, autenticacao liberada\n\r");
@@ -210,9 +194,3 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     }
 
 }
-
-int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
-    return PAM_SUCCESS;
-}
-
-*/
