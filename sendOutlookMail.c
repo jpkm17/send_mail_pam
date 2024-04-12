@@ -26,8 +26,6 @@ void recipient() {
     printf("\nInforme o nome para enviar o email: ");
     fgets(resp, sizeof(resp), stdin);
 
-    printf("\nNome digitado: %s", resp);
-
     // Converter o nome digitado para minúsculas
     for (int i = 0; resp[i] != '\0'; i++) {
         resp[i] = tolower(resp[i]);
