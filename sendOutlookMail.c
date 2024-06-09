@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include "include/curl/curl.h"
+#include <security/pam_modules.h>
+#include <security/pam_ext.h>
 #include <curl/curl.h>
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
-#include <security/pam_modules.h>
 
 int codigo[7];
 char codigo_string[7];
@@ -13,160 +13,126 @@ int codigo_int;
 int digito_aleatorio;
 char toAddr[100];
 
-void recipient() {
-    char nomes[4][7][30] = {
+void recipient(const char *username) {
+    struct {
+        const char *name;
+        const char *email;
+    } users[] = {
         {"arthur", "eita@gmail.com"},
         {"elvis", "teste@gmail.com"},
-        {"joao", "damedame@gmail.com"},
+        {"joao", "damedamedameio@gmail.com"},
+	{"john", "farofinha@gmail.com"},
         {"rafael", "aaa@gmail.com"}
     };
 
-    char resp[7];
-
-    printf("\nInforme o nome para enviar o email: ");
-    fgets(resp, sizeof(resp), stdin);
-
-    // Converter o nome digitado para min煤sculas
-    for (int i = 0; resp[i] != '\0'; i++) {
-        resp[i] = tolower(resp[i]);
+    int found = 0;
+    for (int i = 0; i < sizeof(users) / sizeof(users[0]); i++) {
+        if (strcmp(username, users[i].name) == 0) {
+            strcpy(toAddr, users[i].email);
+            found = 1;
+            break;
+        }
     }
 
-    if (resp[strlen(resp) - 1] == '\n') {
-        resp[strlen(resp) - 1] = '\0';
+    if (!found) {
+        printf("\nNome n鉶 encontrado\n");
+        // Handle the case where the username is not found
     }
-
-    int encontrado = 0;
-    // Percorrer as linhas
-    for (int i = 0; i < 4; i++) {
-            if(strcmp(resp, nomes[i]) == 0 ){
-                strcpy(toAddr, nomes[i][1]);
-                encontrado = 1;
-            }
-        printf("\n"); // Nova linha ap贸s cada linha da matriz
-    }
-
-    if (!encontrado) {
-        printf("\nNome nao encontrado\n\r");
-    }
-
 }
 
-
-void generateCode(){
+void generateCode() {
     srand(time(NULL));
 
-    // Gerando o c贸digo aleat贸rio
-    for (int i = 0; i < 6; i++)
-    {
+    for (int i = 0; i < 6; i++) {
         digito_aleatorio = rand() % 10;
         codigo[i] = digito_aleatorio;
     }
 
-    // Convertendo o vetor para string
-    for (int i = 0; i < 6; i++)
-    {
+    for (int i = 0; i < 6; i++) {
         codigo_string[i] = codigo[i] + '0';
     }
-    codigo_string[7] = '\0';
+    codigo_string[6] = '\0';
 
-    // Convertendo a string para inteiro
     codigo_int = atoi(codigo_string);
 }
 
-void sendMail(){
-  generateCode();
-  char payload_text[250];
+void sendMail() {
+    generateCode();
+    char payload_text[250];
 
-  #define FROM_ADDR    "sender@outlook.com"
-  #define TO_ADDR      toAddr
-  #define CC_ADDR      "copyEmail@org.com"
+    #define FROM_ADDR    "autenticacao2Factor@outlook.com"
+    #define TO_ADDR      toAddr
+    #define CC_ADDR      "joao.meneguesso@fatec.sp.gov.br"
 
-  snprintf(payload_text,sizeof(payload_text),
-          "Date: Thu, 29 Mar 2024 19:51:00 +1100\r\n"
-          "To: %s\r\n"
-          "From: %s\r\n"
-          "Cc: %s\r\n"
-          "Subject: Autenticacao 2 fatores\r\n"
-          "\r\n"
-          "C贸digo de autentica莽茫o: %s \r\n"
-          "\r\n",
-          TO_ADDR, FROM_ADDR, CC_ADDR, codigo_string);
+    snprintf(payload_text, sizeof(payload_text),
+             "Date: Thu, 29 Mar 2024 19:51:00 +1100\r\n"
+             "To: %s\r\n"
+             "From: %s\r\n"
+             "Cc: %s\r\n"
+             "Subject: Autenticacao 2 fatores\r\n"
+             "\r\n"
+             "Codigo de autenticacao: %s \r\n"
+             "\r\n",
+             TO_ADDR, FROM_ADDR, CC_ADDR, codigo_string);
 
-  struct upload_status {
-    size_t bytes_read;
-  };
+    struct upload_status {
+        size_t bytes_read;
+    };
 
-  size_t payload_source(char *ptr, size_t size, size_t nmemb, void *userp) {
-    struct upload_status *upload_ctx = (struct upload_status *)userp;
-    const char *data;
-    size_t room = size * nmemb;
+    size_t payload_source(char *ptr, size_t size, size_t nmemb, void *userp) {
+        struct upload_status *upload_ctx = (struct upload_status *)userp;
+        const char *data;
+        size_t room = size * nmemb;
 
-    if((size == 0) || (nmemb == 0) || ((size*nmemb) < 1)) {
-      return 0;
+        if ((size == 0) || (nmemb == 0) || ((size * nmemb) < 1)) {
+            return 0;
+        }
+
+        data = &payload_text[upload_ctx->bytes_read];
+
+        if (data) {
+            size_t len = strlen(data);
+            if (room < len) {
+                len = room;
+            }
+            memcpy(ptr, data, len);
+            upload_ctx->bytes_read += len;
+
+            return len;
+        }
+
+        return 0;
     }
 
-    data = &payload_text[upload_ctx->bytes_read];
+    CURL *curl;
+    CURLcode res = CURLE_OK;
+    struct curl_slist *recipients = NULL;
+    struct upload_status upload_ctx = { 0 };
 
-    if(data) {
-      size_t len = strlen(data);
-      if(room < len)
-        len = room;
-      memcpy(ptr, data, len);
-      upload_ctx->bytes_read += len;
+    curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_USERNAME, "segredo de estado ");
+        curl_easy_setopt(curl, CURLOPT_PASSWORD,"segredo de estado");
+        curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp-mail.outlook.com:587");
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_MAIL_FROM, FROM_ADDR);
 
-      return len;
-   }
+        recipients = curl_slist_append(recipients, TO_ADDR);
+        recipients = curl_slist_append(recipients, CC_ADDR);
+        curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
+        curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
+        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
 
-    return 0;
-  }
+        res = curl_easy_perform(curl);
 
-  CURL *curl;
-  CURLcode res = CURLE_OK;
-  struct curl_slist *recipients = NULL;
-  struct upload_status upload_ctx = { 0 };
+        if (res != CURLE_OK) {
+            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        }
 
-  curl = curl_easy_init();
-  if(curl) {
-    /* Set username and password */
-    curl_easy_setopt(curl, CURLOPT_USERNAME, "yourEmail@outlook.com");
-    curl_easy_setopt(curl, CURLOPT_PASSWORD, "yourPassword");
-    curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp-mail.outlook.com:587");
-    curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
-
-    /* If you don't have a certificate, use this
-     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-     */
-    
-    /* Use this, if you have a certificate, 
-     curl_easy_setopt(curl, CURLOPT_CAINFO, "path/to/certified.pem"); ./cacert.pem
-    */
-    curl_easy_setopt(curl, CURLOPT_MAIL_FROM, FROM_ADDR);
-
-    recipients = curl_slist_append(recipients, TO_ADDR);
-    recipients = curl_slist_append(recipients, CC_ADDR);
-    curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
-      
-    curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
-    curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
-    curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-
-    //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
-    /* Send the message */
-    res = curl_easy_perform(curl);
-      
-    /* Check for errors */
-    if(res != CURLE_OK)
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
-
-    /* Free the list of recipients */
-    curl_slist_free_all(recipients);
-
-    /* Always cleanup */
-    curl_easy_cleanup(curl);
-  }
+        curl_slist_free_all(recipients);
+        curl_easy_cleanup(curl);
+    }
 }
 
 int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
@@ -174,21 +140,27 @@ int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv) {
 }
 
 int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) {
-    recipient();
+    const char *username;
+    int retval = pam_get_user(pamh, &username, NULL);
+
+    if (retval != PAM_SUCCESS) {
+        return retval;
+    }
+
+    recipient(username);
 
     printf("\nAguarde alguns instantes para a chegada do codigo no email!\n");
     sendMail();
-    char resposta[7];
 
+    char resposta[7];
     printf("\nInforme o codigo: ");
     fgets(resposta, sizeof(resposta), stdin);
 
-    if(strcmp(resposta, codigo_string) == 0){
-        printf("\nValidacao concluida, autenticacao liberada\n\r");
-         return PAM_SUCCESS;
-    } else{
-        printf("\nCodigo diferente, autenticacao negada\n\r");
+    if (strcmp(resposta, codigo_string) == 0) {
+        printf("\nValidacao concluida, autenticacao liberada\n");
+        return PAM_SUCCESS;
+    } else {
+        printf("\nCodigo diferente, autenticacao negada\n");
         return PAM_AUTH_ERR;
     }
-
 }
