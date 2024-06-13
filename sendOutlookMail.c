@@ -20,8 +20,8 @@ void recipient(const char *username) {
     } users[] = {
         {"arthur", "eita@gmail.com"},
         {"elvis", "teste@gmail.com"},
-        {"joao", "damedamedameio@gmail.com"},
-	{"john", "farofinha@gmail.com"},
+        {"joao", "jpm83633@gmail.com"},
+	{"john", "jpm83633@gmail.com"},
         {"rafael", "aaa@gmail.com"}
     };
 
@@ -111,8 +111,8 @@ void sendMail() {
 
     curl = curl_easy_init();
     if (curl) {
-        curl_easy_setopt(curl, CURLOPT_USERNAME, "segredo de estado ");
-        curl_easy_setopt(curl, CURLOPT_PASSWORD,"segredo de estado");
+        curl_easy_setopt(curl, CURLOPT_USERNAME, "autenticacao2Factor@outlook.com");
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, "autenticacao2PAM");
         curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp-mail.outlook.com:587");
         curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
         curl_easy_setopt(curl, CURLOPT_MAIL_FROM, FROM_ADDR);
@@ -152,9 +152,15 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **ar
     printf("\nAguarde alguns instantes para a chegada do codigo no email!\n");
     sendMail();
 
-    char resposta[7];
+    /*char resposta[7];
     printf("\nInforme o codigo: ");
-    fgets(resposta, sizeof(resposta), stdin);
+    fgets(resposta, sizeof(resposta), stdin); */
+
+    char *resposta = NULL;
+    retval = pam_prompt(pamh, PAM_PROMPT_ECHO_ON, &resposta, "\nInforme o codigo: ");
+    if(retval != PAM_SUCCESS) {
+	return retval;
+    }
 
     if (strcmp(resposta, codigo_string) == 0) {
         printf("\nValidacao concluida, autenticacao liberada\n");
